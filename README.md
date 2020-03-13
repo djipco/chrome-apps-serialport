@@ -18,15 +18,21 @@ While `node-serialport` can be used within NW.js, it needs to be specifically re
 prove to be troublesome. This library bypasses this problem by using the `chrome.serial` API which
 is already available in NW.js (via the builtin support for the Chrome Apps APIs).
 
+The **chrome-apps-serialport** module also fixes a 
+[long-standing issue](https://github.com/nwjs/nw.js/issues/586) in NW.js that must be dealt with in
+order to successfully use the serial port. This means that, if you use this module, you do not need
+to bother importing the [`nwjs-j5-fix`](https://github.com/djipco/nwjs-j5-fix) module. It will be 
+taken care of for you.
+
 ## History
 
 The `chrome-apps-serialport` module is a repackaging of 
-[`browser-serialport`](https://github.com/garrows/browser-serialport) (created by Glen Arrowsmith). 
-This module was working great until API changes were introduced in version 8 of `node-serialport`. 
-These changes forced dependent projects to update which, in turnm broke compatibility with 
-`browser-serialport`. Since `browser-serialport` has not been updated in many years, I created
-`chrome-apps-serialport` to insure compatibility with the latest version of `node-serialport` 
-(while remaining backwards-compatible).
+[`browser-serialport`](https://github.com/garrows/browser-serialport) (created by 
+[Glen Arrowsmith](https://github.com/garrows)). This module was working great until API changes were 
+introduced in version 8 of `node-serialport`. These changes forced dependent projects to update 
+which, in turnm broke compatibility with `browser-serialport`. Since `browser-serialport` has not 
+been updated in many years, I packaged `chrome-apps-serialport` to insure compatibility with the 
+latest version of `node-serialport` (while remaining backwards-compatible).
 
 ## Compatibility
 
