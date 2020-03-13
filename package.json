@@ -1,0 +1,39 @@
+{
+  "name": "chrome-apps-serialport",
+  "version": "1.0.0-beta.1",
+  "description": "A Chrome Apps-compatible implementation of the node-serialport module",
+  "main": "dist/chrome-apps-serialport.min.js",
+  "dependencies": {
+    "nwjs-j5-fix": "^1.0.6"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.0",
+    "rollup-plugin-terser": "^5.2.0"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "build": "npm run lint && rollup --config",
+    "publish-to-npm": "npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/djipco/chrome-apps-serialport.git"
+  },
+  "keywords": [
+    "serial",
+    "firmata",
+    "port",
+    "chrome app"
+  ],
+  "author": "Jean-Philippe Côté <jp@djip.co>",
+  "license": "GPLv3",
+  "bugs": {
+    "url": "https://github.com/djipco/chrome-apps-serialport/issues"
+  },
+  "files": [
+    "./dist/chrome-apps-serialport.min.js",
+    "./package.json",
+    "./README.md"
+  ]
+}
