@@ -1,6 +1,6 @@
 {
   "name": "chrome-apps-serialport",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "A Chrome Apps-compatible implementation of the node-serialport module",
   "main": "dist/chrome-apps-serialport.min.js",
   "dependencies": {
@@ -22,9 +22,11 @@
   },
   "keywords": [
     "serial",
-    "firmata",
     "port",
-    "chrome app"
+    "chrome app",
+    "nw.js",
+    "nw",
+    "chrome.serial"
   ],
   "author": "Jean-Philippe Côté <jp@djip.co>",
   "license": "GPLv3",

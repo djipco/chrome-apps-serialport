@@ -1,13 +1,16 @@
 const EE = require("events").EventEmitter;
 const util = require("util");
-require("nwjs-j5-fix").fix(); // Fix issue with streams in NW.js
 
-var DATABITS = [7, 8];
-var STOPBITS = [1, 2];
-var PARITY = ["none", "even", "mark", "odd", "space"];
-var FLOWCONTROLS = ["RTSCTS"];
+if (process && process.versions.nw && parseFloat(process.versions.nw) >= 0.13) {
+  require("nwjs-j5-fix").fix(); // Fix issue with streams in NW.js
+}
 
-var _options = {
+const DATABITS = [7, 8];
+const STOPBITS = [1, 2];
+const PARITY = ["none", "even", "mark", "odd", "space"];
+const FLOWCONTROLS = ["RTSCTS"];
+
+const _options = {
   baudrate: 9600,
   parity: "none",
   rtscts: false,
