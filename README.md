@@ -1,4 +1,4 @@
-# nwjs-serialport
+# chrome-apps-serialport
 
 ## Introduction
 
@@ -10,7 +10,7 @@ This library was created so that library authors can offer support for the Chrom
 (which also includes [NW.js](https://nwjs.io)) in libraries already depending on the 
 `node-serialport` module (e.g. `johnny-five`, `firmata`, etc.). 
 
-## About NW.js
+## NW.js Support
 
 The main use case for this library is to simplify usage of Johnny-Five and Firmata inside NW.js. 
 While `node-serialport` can be used within NW.js, it needs to be specifically recompiled. This can
