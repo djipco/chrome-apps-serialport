@@ -29,8 +29,8 @@ also being backwards-compatible.
 
 ## Compatibility
 
-This library should be compatible with version 8.x+ of `node-serialport` as well as pre-8.x 
-versions. However, it does have one shortcoming:
+You should be able to use `chrome-apps-serialport` wherever `node-serialport` as long as you are
+within a Chrome App or within NW.js. The library does have a shortcoming:
 
 * Parsers are not implemented
 
