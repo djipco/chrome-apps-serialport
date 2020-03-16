@@ -49,6 +49,9 @@ noted:
     * __stopBits__: 1, 2
     * __parity__: 'none', 'even', 'mark', 'odd', 'space'
     * __flowControl__: 'RTSCTS'
+    * __highWaterMark__: ignored
+    * __lock__: ignored
+    * __xon__, __xoff__, __xany__: ignored
    
 * Parsers are not implemented.
 
