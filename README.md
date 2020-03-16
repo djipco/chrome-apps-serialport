@@ -32,25 +32,34 @@ The `chrome-apps-serialport` module is a repackaging of
 introduced in version 8 of `node-serialport`. These changes forced dependent projects to update 
 which, in turnm broke compatibility with `browser-serialport`. Since `browser-serialport` has not 
 been updated in many years, I packaged `chrome-apps-serialport` to insure compatibility with the 
-latest version of `node-serialport` (while remaining backwards-compatible).
+latest version of `node-serialport`.
 
 ## Compatibility
 
-You should be able to use `chrome-apps-serialport` wherever `node-serialport` is used as long as 
-you are within a Chrome App or NW.js. The library does have a shortcoming:
+Unless you are using very specialized functionalities (see below), you should be able to use 
+`chrome-apps-serialport` wherever `node-serialport` v8.x+ is used. Obviously, this is only true if 
+you are executing the code within a Chrome App or NW.js.
 
-* Parsers are not implemented
+Due to the underlying architecture (`chrome.serial`), there are a few differences that should be 
+noted:
 
-There are also a few subtle differences: 
-
-* The options are different:
+* The connection options are a little bit different:
 
     * __dataBits__: 7, 8
     * __stopBits__: 1, 2
     * __parity__: 'none', 'even', 'mark', 'odd', 'space'
     * __flowControl__: 'RTSCTS'
+   
+* Parsers are not implemented.
+
+* The `read()` method is not implemented.
+
+* The `drain()` method can be called but will not do anything. This also means that no `drain` 
+events are ever dispatched.
+
+* Only UTF8 is supported when passing strings to the `write()` method.
     
-* Error messages differ
+* Error messages differ.
 
 ## Installation
 
