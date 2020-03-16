@@ -47,7 +47,7 @@ function convertOptions(options){
   return options;
 }
 
-function SerialPort(path, options, openImmediately, callback) {
+function SerialPort(path, options, callback) {
 
   EE.call(this);
 
@@ -61,8 +61,8 @@ function SerialPort(path, options, openImmediately, callback) {
 
   options = (typeof options !== "function") && options || {};
 
-  if (openImmediately === undefined || openImmediately === null) {
-    openImmediately = true;
+  if (options.autoOpen === undefined || options.autoOpen === null) {
+    options.autoOpen = true;
   }
 
   callback = callback || function (err) {
@@ -168,12 +168,15 @@ function SerialPort(path, options, openImmediately, callback) {
   });
 
   this.path = path;
+  this.isOpen = false;
+  this.baudRate = this.options.baudRate;
 
-  if (openImmediately) {
+  if (options.autoOpen) {
     process.nextTick(function () {
       self.open(callback);
     });
   }
+
 }
 
 util.inherits(SerialPort, EE);
@@ -181,6 +184,7 @@ util.inherits(SerialPort, EE);
 SerialPort.prototype.connectionId = -1;
 
 SerialPort.prototype.open = function (callback) {
+
   let options = {
     bitrate: parseInt(this.options.baudRate, 10),
     dataBits: this.options.dataBits,
@@ -190,6 +194,7 @@ SerialPort.prototype.open = function (callback) {
   };
 
   this.options.serial.connect(this.path, options, this.proxy("onOpen", callback));
+
 };
 
 SerialPort.prototype.onOpen = function (callback, openInfo) {
@@ -209,6 +214,7 @@ SerialPort.prototype.onOpen = function (callback, openInfo) {
     return;
   }
 
+  this.isOpen = true;
   this.emit("open", openInfo);
 
   this._reader = this.proxy("onRead");
@@ -232,9 +238,10 @@ SerialPort.prototype.onRead = function (readInfo) {
   }
 };
 
-SerialPort.prototype.write = function (buffer, callback) {
+SerialPort.prototype.write = function (buffer, encoding = "utf8", callback = () => {}) {
   if (this.connectionId < 0) {
     let err = new Error("Serialport not open.");
+    this.isOpen = false;
     if(typeof callback === "function"){
       callback(err);
     }else{
@@ -246,6 +253,8 @@ SerialPort.prototype.write = function (buffer, callback) {
   if (typeof buffer === "string") {
     buffer = str2ab(buffer);
   }
+
+  if (encoding !== "utf8") console.warn("Only utf8 encoding is supported for strings.");
 
   //Make sure its not a browserify faux Buffer.
   if (!(buffer instanceof ArrayBuffer)) {
@@ -262,6 +271,7 @@ SerialPort.prototype.write = function (buffer, callback) {
 
 SerialPort.prototype.close = function (callback) {
   if (this.connectionId < 0) {
+    this.isOpen = false;
     let err = new Error("Serialport not open.");
     if(typeof callback === "function"){
       callback(err);
@@ -276,6 +286,7 @@ SerialPort.prototype.close = function (callback) {
 
 SerialPort.prototype.onClose = function (callback, result) {
   this.connectionId = -1;
+  this.isOpen = false;
   this.emit("close");
 
   this.removeAllListeners();
@@ -291,6 +302,7 @@ SerialPort.prototype.onClose = function (callback, result) {
 
 SerialPort.prototype.flush = function (callback) {
   if (this.connectionId < 0) {
+    this.isOpen = false;
     let err = new Error("Serialport not open.");
     if(typeof callback === "function"){
       callback(err);
@@ -316,11 +328,13 @@ SerialPort.prototype.flush = function (callback) {
 };
 
 SerialPort.prototype.drain = function (callback) {
+
   if (this.connectionId < 0) {
+    this.isOpen = false;
     let err = new Error("Serialport not open.");
-    if(typeof callback === "function"){
+    if (typeof callback === "function") {
       callback(err);
-    }else{
+    } else {
       this.emit("error", err);
     }
     return;
@@ -329,6 +343,58 @@ SerialPort.prototype.drain = function (callback) {
   if (typeof callback === "function") {
     callback();
   }
+
+};
+
+SerialPort.prototype.pause = function (callback) {
+
+  if (this.connectionId < 0) {
+    this.isOpen = false;
+    let err = new Error("Serialport not open.");
+    if (typeof callback === "function") {
+      callback(err);
+    } else {
+      this.emit("error", err);
+    }
+    return;
+  }
+
+  this.options.serial.setPaused(this.connectionId, true, callback);
+
+};
+
+SerialPort.prototype.resume = function (callback) {
+
+  if (this.connectionId < 0) {
+    this.isOpen = false;
+    let err = new Error("Serialport not open.");
+    if (typeof callback === "function") {
+      callback(err);
+    } else {
+      this.emit("error", err);
+    }
+    return;
+  }
+
+  this.options.serial.setPaused(this.connectionId, false, callback);
+
+};
+
+SerialPort.prototype.update = function (options = {}, callback = () => {}) {
+
+  if (this.connectionId < 0) {
+    this.isOpen = false;
+    let err = new Error("Serialport not open.");
+    if (typeof callback === "function") {
+      callback(err);
+    } else {
+      this.emit("error", err);
+    }
+    return;
+  }
+
+  this.options.serial.update(this.connectionId, {bitrate: options.baudRate}, callback);
+
 };
 
 
@@ -361,8 +427,10 @@ SerialPort.prototype.set = function (options, callback) {
   });
 };
 
-SerialPort.prototype.isOpen = function () {
-  return this.connectionId > -1;
+SerialPort.prototype.get = function (options, callback) {
+  this.options.serial.getControlSignals(this.connectionId, function(signals){
+    callback(chrome.runtime.lastError, signals);
+  });
 };
 
 SerialPort.list = async function(callback) {

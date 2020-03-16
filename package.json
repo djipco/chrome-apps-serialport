@@ -1,6 +1,6 @@
 {
   "name": "chrome-apps-serialport",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A Chrome Apps-compatible implementation of the node-serialport module",
   "main": "dist/chrome-apps-serialport.min.js",
   "dependencies": {

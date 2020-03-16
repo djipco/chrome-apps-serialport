@@ -331,7 +331,6 @@ SerialPort.prototype.flush = function (callback) {
   });
 };
 
-// @ todo: can this be improved?
 SerialPort.prototype.drain = function (callback) {
 
   if (this.connectionId < 0) {
