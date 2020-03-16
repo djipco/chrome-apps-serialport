@@ -367,7 +367,7 @@ SerialPort.prototype.isOpen = function () {
   return this.connectionId > -1;
 };
 
-function SerialPortList(callback) {
+SerialPort.prototype.list = function(callback) {
 
   if (typeof chrome != "undefined" && chrome.serial) {
 
@@ -403,8 +403,7 @@ function SerialPortList(callback) {
     return Promise.reject(error);
   }
 
-
-}
+};
 
 // Convert string to ArrayBuffer
 function str2ab(str) {
@@ -437,7 +436,7 @@ function toBuffer(ab) {
 
 module.exports = {
   SerialPort: SerialPort,
-  list: SerialPortList,
+  list: SerialPort.list, // this is for backwards-compatibility
   buffer2ArrayBuffer: buffer2ArrayBuffer,
   used: [] //TODO: Populate this somewhere.
 };
