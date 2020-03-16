@@ -53,9 +53,9 @@ function SerialPort(path, options, openImmediately, callback) {
 
   EE.call(this);
 
-  var self = this;
+  let self = this;
 
-  var args = Array.prototype.slice.call(arguments);
+  let args = Array.prototype.slice.call(arguments);
   callback = args.pop();
   if (typeof(callback) !== "function") {
     callback = null;
@@ -73,7 +73,7 @@ function SerialPort(path, options, openImmediately, callback) {
     }
   };
 
-  var err;
+  let err;
 
   options.baudRate = options.baudRate || options.baudrate || _options.baudrate;
 
@@ -107,16 +107,16 @@ function SerialPort(path, options, openImmediately, callback) {
   options.rtscts = _options.rtscts;
 
   if (options.flowControl || options.flowcontrol) {
-    var fc = options.flowControl || options.flowcontrol;
+    let fc = options.flowControl || options.flowcontrol;
 
     if (typeof fc === "boolean") {
       options.rtscts = true;
     } else {
-      var clean = fc.every(function (flowControl) {
-        var fcup = flowControl.toUpperCase();
-        var idx = FLOWCONTROLS.indexOf(fcup);
+      let clean = fc.every(function (flowControl) {
+        let fcup = flowControl.toUpperCase();
+        let idx = FLOWCONTROLS.indexOf(fcup);
         if (idx < 0) {
-          var err = new Error("Invalid \"flowControl\": " + fcup + ". Valid options: " +
+          let err = new Error("Invalid \"flowControl\": " + fcup + ". Valid options: " +
             FLOWCONTROLS.join("", ""));
           callback(err);
           return false;
@@ -185,7 +185,7 @@ util.inherits(SerialPort, EE);
 SerialPort.prototype.connectionId = -1;
 
 SerialPort.prototype.open = function (callback) {
-  var options = {
+  let options = {
     bitrate: parseInt(this.options.baudRate, 10),
     dataBits: this.options.dataBits,
     parityBit: this.options.parity,
@@ -238,7 +238,7 @@ SerialPort.prototype.onRead = function (readInfo) {
 
 SerialPort.prototype.write = function (buffer, callback) {
   if (this.connectionId < 0) {
-    var err = new Error("Serialport not open.");
+    let err = new Error("Serialport not open.");
     if(typeof callback === "function"){
       callback(err);
     }else{
@@ -252,7 +252,7 @@ SerialPort.prototype.write = function (buffer, callback) {
   }
 
   //Make sure its not a browserify faux Buffer.
-  if (buffer instanceof ArrayBuffer === false) {
+  if (!(buffer instanceof ArrayBuffer)) {
     buffer = buffer2ArrayBuffer(buffer);
   }
 
@@ -266,7 +266,7 @@ SerialPort.prototype.write = function (buffer, callback) {
 
 SerialPort.prototype.close = function (callback) {
   if (this.connectionId < 0) {
-    var err = new Error("Serialport not open.");
+    let err = new Error("Serialport not open.");
     if(typeof callback === "function"){
       callback(err);
     }else{
@@ -295,7 +295,7 @@ SerialPort.prototype.onClose = function (callback, result) {
 
 SerialPort.prototype.flush = function (callback) {
   if (this.connectionId < 0) {
-    var err = new Error("Serialport not open.");
+    let err = new Error("Serialport not open.");
     if(typeof callback === "function"){
       callback(err);
     }else{
@@ -304,7 +304,7 @@ SerialPort.prototype.flush = function (callback) {
     return;
   }
 
-  var self = this;
+  let self = this;
 
   this.options.serial.flush(this.connectionId, function(result) {
     if (chrome.runtime.lastError) {
@@ -313,7 +313,6 @@ SerialPort.prototype.flush = function (callback) {
       } else {
         self.emit("error", chrome.runtime.lastError);
       }
-      return;
     } else {
       callback(null, result);
     }
@@ -322,7 +321,7 @@ SerialPort.prototype.flush = function (callback) {
 
 SerialPort.prototype.drain = function (callback) {
   if (this.connectionId < 0) {
-    var err = new Error("Serialport not open.");
+    let err = new Error("Serialport not open.");
     if(typeof callback === "function"){
       callback(err);
     }else{
@@ -338,27 +337,26 @@ SerialPort.prototype.drain = function (callback) {
 
 
 SerialPort.prototype.proxy = function () {
-  var self = this;
-  var proxyArgs = [];
+  let self = this;
+  let proxyArgs = [];
 
   //arguments isnt actually an array.
-  for (var i = 0; i < arguments.length; i++) {
+  for (let i = 0; i < arguments.length; i++) {
     proxyArgs[i] = arguments[i];
   }
 
-  var functionName = proxyArgs.splice(0, 1)[0];
+  let functionName = proxyArgs.splice(0, 1)[0];
 
-  var func = function() {
-    var funcArgs = [];
-    for (var i = 0; i < arguments.length; i++) {
+  return function() {
+    let funcArgs = [];
+    for (let i = 0; i < arguments.length; i++) {
       funcArgs[i] = arguments[i];
     }
-    var allArgs = proxyArgs.concat(funcArgs);
+    let allArgs = proxyArgs.concat(funcArgs);
 
     self[functionName].apply(self, allArgs);
   };
 
-  return func;
 };
 
 SerialPort.prototype.set = function (options, callback) {
@@ -379,9 +377,9 @@ SerialPort.list = async function(callback) {
 
       chrome.serial.getDevices(function(ports) {
 
-        var portObjects = new Array(ports.length);
+        let portObjects = new Array(ports.length);
 
-        for (var i = 0; i < ports.length; i++) {
+        for (let i = 0; i < ports.length; i++) {
           portObjects[i] = {
             comName: ports[i].path, // backwards-compatibility with older versions of serialport
             path: ports[i].path,
@@ -402,7 +400,7 @@ SerialPort.list = async function(callback) {
     });
 
   } else {
-    var error = new Error("No access to serial ports. Try loading as a Chrome Application.");
+    let error = new Error("No access to serial ports. Try loading as a Chrome Application.");
     callback(error, null);
     return Promise.reject(error);
   }
@@ -411,9 +409,9 @@ SerialPort.list = async function(callback) {
 
 // Convert string to ArrayBuffer
 function str2ab(str) {
-  var buf = new ArrayBuffer(str.length);
-  var bufView = new Uint8Array(buf);
-  for (var i = 0; i < str.length; i++) {
+  let buf = new ArrayBuffer(str.length);
+  let bufView = new Uint8Array(buf);
+  for (let i = 0; i < str.length; i++) {
     bufView[i] = str.charCodeAt(i);
   }
   return buf;
@@ -421,18 +419,18 @@ function str2ab(str) {
 
 // Convert buffer to ArrayBuffer
 function buffer2ArrayBuffer(buffer) {
-  var buf = new ArrayBuffer(buffer.length);
-  var bufView = new Uint8Array(buf);
-  for (var i = 0; i < buffer.length; i++) {
+  let buf = new ArrayBuffer(buffer.length);
+  let bufView = new Uint8Array(buf);
+  for (let i = 0; i < buffer.length; i++) {
     bufView[i] = buffer[i];
   }
   return buf;
 }
 
 function toBuffer(ab) {
-  var buffer = new Buffer(ab.byteLength);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buffer.length; ++i) {
+  let buffer = new Buffer(ab.byteLength);
+  let view = new Uint8Array(ab);
+  for (let i = 0; i < buffer.length; ++i) {
     buffer[i] = view[i];
   }
   return buffer;
@@ -442,5 +440,5 @@ module.exports = {
   SerialPort: SerialPort,
   list: SerialPort.list, // this is for backwards-compatibility
   buffer2ArrayBuffer: buffer2ArrayBuffer,
-  used: [] //TODO: Populate this somewhere.
+  used: [] //Populate this somewhere!!
 };
