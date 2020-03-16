@@ -1,7 +1,5 @@
 "use strict";
 
-// @todo : add baudRate getter
-
 const EE = require("events").EventEmitter;
 const util = require("util");
 
@@ -175,6 +173,7 @@ function SerialPort(path, options, callback) {
 
   this.path = path;
   this.isOpen = false;
+  this.baudRate = this.options.baudRate;
 
   if (options.autoOpen) {
     process.nextTick(function () {
@@ -201,6 +200,7 @@ SerialPort.prototype.open = function (callback) {
   };
 
   this.options.serial.connect(this.path, options, this.proxy("onOpen", callback));
+
 };
 
 SerialPort.prototype.onOpen = function (callback, openInfo) {
