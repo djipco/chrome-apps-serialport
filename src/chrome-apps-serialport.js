@@ -371,7 +371,7 @@ SerialPort.prototype.isOpen = function () {
   return this.connectionId > -1;
 };
 
-SerialPort.list = function(callback) {
+SerialPort.list = async function(callback) {
 
   if (typeof chrome != "undefined" && chrome.serial) {
 
