@@ -34,7 +34,9 @@
     "url": "https://github.com/djipco/chrome-apps-serialport/issues"
   },
   "files": [
+    "./dist/chrome-apps-serialport.js",
     "./dist/chrome-apps-serialport.min.js",
+    "./dist/chrome-apps-serialport.min.js.map",
     "./package.json",
     "./README.md"
   ]
