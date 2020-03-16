@@ -1,9 +1,5 @@
 "use strict";
 
-//@todo drain()
-//@todo update()
-//@read()
-
 const EE = require("events").EventEmitter;
 const util = require("util");
 
@@ -335,6 +331,7 @@ SerialPort.prototype.flush = function (callback) {
   });
 };
 
+// @ todo: can this be improved?
 SerialPort.prototype.drain = function (callback) {
 
   if (this.connectionId < 0) {
@@ -385,6 +382,23 @@ SerialPort.prototype.resume = function (callback) {
   }
 
   this.options.serial.setPaused(this.connectionId, false, callback);
+
+};
+
+SerialPort.prototype.update = function (options = {}, callback = () => {}) {
+
+  if (this.connectionId < 0) {
+    this.isOpen = false;
+    let err = new Error("Serialport not open.");
+    if (typeof callback === "function") {
+      callback(err);
+    } else {
+      this.emit("error", err);
+    }
+    return;
+  }
+
+  this.options.serial.update(this.connectionId, {bitrate: options.baudRate}, callback);
 
 };
 
