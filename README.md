@@ -1,7 +1,5 @@
 # chrome-apps-serialport
 
-## Introduction
-
 The **chrome-apps-serialport** JavaScript module is a 
 [Chrome Apps](https://developer.chrome.com/apps/)-compatible implementation of the 
 [`node-serialport`](https://serialport.io/) module used for serial communication.
@@ -23,6 +21,50 @@ The **chrome-apps-serialport** module also fixes a
 order to successfully use the serial port. This means that, if you use this module, you do not need
 to bother importing the [`nwjs-j5-fix`](https://github.com/djipco/nwjs-j5-fix) module. It will be 
 taken care of for you.
+
+## Installation
+
+```
+npm install chrome-apps-serialport
+```
+
+## Basic Usage
+
+```js
+const SerialPort = require("chrome-apps-serialport").SerialPort;
+
+let port = new SerialPort("/dev/tty-usbserial1", {
+  baudrate: 57600
+});
+```
+
+## Using the module with Johnny-Five
+
+```js
+const SerialPort = require("chrome-apps-serialport").SerialPort;
+const Firmata = require("firmata-io")(SerialPort);
+const five = require("johnny-five");
+
+SerialPort.list().then(ports => {
+
+  const device = ports.find(port => {
+    return port.manufacturer && port.manufacturer.startsWith("Arduino")
+  });
+
+  const board = new five.Board({
+    io: new Firmata(device.path)
+  });
+
+  board.on("ready", () => {
+    console.log("Johnny-Five is ready!");
+    const led = new five.Led(13);
+    led.blink(500);
+  });
+
+  board.on("close", () => console.log("Closed!"));
+
+});
+```
 
 ## History
 
@@ -63,19 +105,3 @@ events are ever dispatched.
 * Only UTF8 is supported when passing strings to the `write()` method.
     
 * Error messages differ.
-
-## Installation
-
-```
-npm install chrome-apps-serialport
-```
-
-## Usage
-
-```js
-const SerialPort = require("chrome-apps-serialport").SerialPort;
-
-let port = new SerialPort("/dev/tty-usbserial1", {
-  baudrate: 57600
-});
-```
