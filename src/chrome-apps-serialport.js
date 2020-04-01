@@ -21,6 +21,10 @@ const _options = {
   buffersize: 256
 };
 
+// This holds data that couldn't be sent (typically when trying to send while a send operation is
+// ongoing)
+let _globalBuffer = new ArrayBuffer(0);
+
 function convertOptions(options){
   switch (options.dataBits) {
     case 7:
@@ -243,33 +247,43 @@ SerialPort.prototype.onRead = function (readInfo) {
 };
 
 SerialPort.prototype.write = function (buffer, encoding = "utf8", callback = () => {}) {
+
+  // This is for backwards-compatibility (when "encoding" is omitted)
+  if (typeof encoding !== "string" && !(encoding instanceof String)) {
+    callback = encoding;
+    encoding = "utf8";
+  } else {
+    if (encoding !== "utf8") console.warn("Only utf8 encoding is supported for strings.");
+  }
+
   if (this.connectionId < 0) {
-    let err = new Error("Serialport not open.");
     this.isOpen = false;
-    if(typeof callback === "function"){
-      callback(err);
-    }else{
-      this.emit("error", err);
-    }
+    let err = new Error("Serialport not open.");
+    if (typeof callback === "function") callback(err);
+    this.emit("error", err);
     return;
   }
 
-  if (typeof buffer === "string") {
-    buffer = str2ab(buffer);
-  }
+  if (typeof buffer === "string") buffer = str2ab(buffer);
 
-  if (encoding !== "utf8") console.warn("Only utf8 encoding is supported for strings.");
+  // chrome.serial needs an ArrayBuffer not a Buffer
+  if (!(buffer instanceof ArrayBuffer)) buffer = buffer2ArrayBuffer(buffer);
 
-  //Make sure its not a browserify faux Buffer.
-  if (!(buffer instanceof ArrayBuffer)) {
-    buffer = buffer2ArrayBuffer(buffer);
-  }
+  // If there is data from a previous failed send operation, merge it in and empty _globalBuffer
+  buffer = arrayBufferConcat(_globalBuffer, buffer);
+  _globalBuffer = new ArrayBuffer(0);
 
   this.options.serial.send(this.connectionId, buffer, function(info) {
+
+    if (info.error === "pending") {
+      _globalBuffer = buffer;
+    }
+
     if (typeof callback === "function") {
       callback(chrome.runtime.lastError, info);
     }
   });
+
 };
 
 
@@ -503,6 +517,68 @@ function toBuffer(ab) {
   }
   return buffer;
 }
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ MIT license
+
+ Copyright (C) 2015 Miguel Mota
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ associated documentation files (the "Software"), to deal in the Software without restriction,
+ including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all copies or
+ substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+function isValidArray(x) {
+  return /Int(8|16|32)Array|Uint(8|8Clamped|16|32)Array|Float(32|64)Array|ArrayBuffer/gi.test(
+    {}.toString.call(x)
+  );
+}
+
+function arrayBufferConcat(/* arraybuffers */) {
+
+  let arrays = [].slice.call(arguments);
+
+  if (arrays.length <= 0 || !isValidArray(arrays[0])) {
+    return new Uint8Array(0).buffer;
+  }
+
+  let arrayBuffer = arrays.reduce(function(cbuf, buf, i) {
+
+    if (i === 0) return cbuf;
+    if (!isValidArray(buf)) return cbuf;
+
+    let tmp = new Uint8Array(cbuf.byteLength + buf.byteLength);
+    tmp.set(new Uint8Array(cbuf), 0);
+    tmp.set(new Uint8Array(buf), cbuf.byteLength);
+
+    return tmp.buffer;
+
+  }, arrays[0]);
+
+  return arrayBuffer;
+
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
 
 module.exports = {
   SerialPort: SerialPort,
