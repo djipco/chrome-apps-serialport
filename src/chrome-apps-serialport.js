@@ -123,7 +123,7 @@ function SerialPort(path, options, callback) {
         let idx = FLOWCONTROLS.indexOf(fcup);
         if (idx < 0) {
           let err = new Error("Invalid \"flowControl\": " + fcup + ". Valid options: " +
-            FLOWCONTROLS.join("", ""));
+            FLOWCONTROLS.join(""));
           callback(err);
           return false;
         } else {
@@ -254,9 +254,9 @@ SerialPort.prototype.write = function (buffer, encoding = "utf8", callback = () 
   if (typeof encoding !== "string" && !(encoding instanceof String)) {
     callback = encoding;
     encoding = "utf8";
-  } else {
-    if (encoding !== "utf8") console.warn("Only utf8 encoding is supported for strings.");
   }
+
+  if (encoding !== "utf8") console.warn("Only utf8 encoding is supported for strings.");
 
   if (this.connectionId < 0) {
     this.isOpen = false;
