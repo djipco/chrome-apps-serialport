@@ -22,8 +22,8 @@ const _options = {
 };
 
 // This holds data that couldn't be sent (typically when trying to send while a send operation is
-// ongoing)
-let _globalBuffer = new ArrayBuffer(0);
+// already ongoing)
+let _bufferArray = [];
 
 function convertOptions(options){
   switch (options.dataBits) {
@@ -58,6 +58,8 @@ function SerialPort(path, options, callback) {
   EE.call(this);
 
   let self = this;
+
+  this.sending = false;
 
   let args = Array.prototype.slice.call(arguments);
   callback = args.pop();
@@ -268,24 +270,35 @@ SerialPort.prototype.write = function (buffer, encoding = "utf8", callback = () 
 
   // chrome.serial needs an ArrayBuffer not a Buffer
   if (!(buffer instanceof ArrayBuffer)) buffer = buffer2ArrayBuffer(buffer);
-
-  // If there is data from a previous failed send operation, merge it in and empty _globalBuffer
-  buffer = arrayBufferConcat(_globalBuffer, buffer);
-  _globalBuffer = new ArrayBuffer(0);
-
-  this.options.serial.send(this.connectionId, buffer, function(info) {
-
-    if (info.error === "pending") {
-      _globalBuffer = buffer;
-    }
-
-    if (typeof callback === "function") {
-      callback(chrome.runtime.lastError, info);
-    }
-  });
+  callback();
+  this._processBuffer(buffer);
 
 };
 
+SerialPort.prototype._processBuffer = function (buffer) {
+
+  if (buffer) _bufferArray.push(buffer);
+
+  if (this.sending) return;
+  this.sending = true;
+
+  this.options.serial.send(this.connectionId, _bufferArray[0], function(info) {
+
+    if (info.error === "pending") {
+      console.warn("You cannot send serial data while another send is pending. Retrying.");
+    } else if (info.error) {
+      console.warn("Sending serial data failed. Error: " + info.error);
+      _bufferArray = [];
+    } else {
+      _bufferArray.shift();
+    }
+
+    this.sending = false;
+    if (_bufferArray.length > 0) setImmediate(this._processBuffer.bind(this));
+
+  }.bind(this));
+
+};
 
 SerialPort.prototype.close = function (callback) {
   if (this.connectionId < 0) {
@@ -415,7 +428,6 @@ SerialPort.prototype.update = function (options = {}, callback = () => {}) {
 
 };
 
-
 SerialPort.prototype.proxy = function () {
   let self = this;
   let proxyArgs = [];
@@ -499,14 +511,8 @@ function str2ab(str) {
   return buf;
 }
 
-// Convert buffer to ArrayBuffer
-function buffer2ArrayBuffer(buffer) {
-  let buf = new ArrayBuffer(buffer.length);
-  let bufView = new Uint8Array(buf);
-  for (let i = 0; i < buffer.length; i++) {
-    bufView[i] = buffer[i];
-  }
-  return buf;
+function buffer2ArrayBuffer(buf) {
+  return new Uint8Array(buf).buffer;
 }
 
 function toBuffer(ab) {
