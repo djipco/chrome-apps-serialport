@@ -20,8 +20,8 @@ const _options = {
 };
 
 // This holds data that couldn't be sent (typically when trying to send while a send operation is
-// ongoing)
-let _globalBuffer = new ArrayBuffer(0);
+// already ongoing)
+let _bufferArray = [];
 
 function convertOptions(options){
   switch (options.dataBits) {
@@ -56,6 +56,8 @@ function SerialPort(path, options, callback) {
   EE.call(this);
 
   let self = this;
+
+  this.sending = false;
 
   let args = Array.prototype.slice.call(arguments);
   callback = args.pop();
@@ -119,7 +121,7 @@ function SerialPort(path, options, callback) {
         let idx = FLOWCONTROLS.indexOf(fcup);
         if (idx < 0) {
           let err = new Error("Invalid \"flowControl\": " + fcup + ". Valid options: " +
-            FLOWCONTROLS.join("", ""));
+            FLOWCONTROLS.join(""));
           callback(err);
           return false;
         } else {
@@ -248,9 +250,9 @@ SerialPort.prototype.write = function (buffer, encoding = "utf8", callback = () 
   if (typeof encoding !== "string" && !(encoding instanceof String)) {
     callback = encoding;
     encoding = "utf8";
-  } else {
-    if (encoding !== "utf8") console.warn("Only utf8 encoding is supported for strings.");
   }
+
+  if (encoding !== "utf8") console.warn("Only utf8 encoding is supported for strings.");
 
   if (this.connectionId < 0) {
     this.isOpen = false;
@@ -264,24 +266,35 @@ SerialPort.prototype.write = function (buffer, encoding = "utf8", callback = () 
 
   // chrome.serial needs an ArrayBuffer not a Buffer
   if (!(buffer instanceof ArrayBuffer)) buffer = buffer2ArrayBuffer(buffer);
-
-  // If there is data from a previous failed send operation, merge it in and empty _globalBuffer
-  buffer = arrayBufferConcat(_globalBuffer, buffer);
-  _globalBuffer = new ArrayBuffer(0);
-
-  this.options.serial.send(this.connectionId, buffer, function(info) {
-
-    if (info.error === "pending") {
-      _globalBuffer = buffer;
-    }
-
-    if (typeof callback === "function") {
-      callback(chrome.runtime.lastError, info);
-    }
-  });
+  callback();
+  this._processBuffer(buffer);
 
 };
 
+SerialPort.prototype._processBuffer = function (buffer) {
+
+  if (buffer) _bufferArray.push(buffer);
+
+  if (this.sending) return;
+  this.sending = true;
+
+  this.options.serial.send(this.connectionId, _bufferArray[0], function(info) {
+
+    if (info.error === "pending") {
+      console.warn("You cannot send serial data while another send is pending. Retrying.");
+    } else if (info.error) {
+      console.warn("Sending serial data failed. Error: " + info.error);
+      _bufferArray = [];
+    } else {
+      _bufferArray.shift();
+    }
+
+    this.sending = false;
+    if (_bufferArray.length > 0) setImmediate(this._processBuffer.bind(this));
+
+  }.bind(this));
+
+};
 
 SerialPort.prototype.close = function (callback) {
   if (this.connectionId < 0) {
@@ -411,7 +424,6 @@ SerialPort.prototype.update = function (options = {}, callback = () => {}) {
 
 };
 
-
 SerialPort.prototype.proxy = function () {
   let self = this;
   let proxyArgs = [];
@@ -495,14 +507,8 @@ function str2ab(str) {
   return buf;
 }
 
-// Convert buffer to ArrayBuffer
-function buffer2ArrayBuffer(buffer) {
-  let buf = new ArrayBuffer(buffer.length);
-  let bufView = new Uint8Array(buf);
-  for (let i = 0; i < buffer.length; i++) {
-    bufView[i] = buffer[i];
-  }
-  return buf;
+function buffer2ArrayBuffer(buf) {
+  return new Uint8Array(buf).buffer;
 }
 
 function toBuffer(ab) {
@@ -513,68 +519,6 @@ function toBuffer(ab) {
   }
   return buffer;
 }
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
- MIT license
-
- Copyright (C) 2015 Miguel Mota
-
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- associated documentation files (the "Software"), to deal in the Software without restriction,
- including without limitation the rights to use, copy, modify, merge, publish, distribute,
- sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in all copies or
- substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-function isValidArray(x) {
-  return /Int(8|16|32)Array|Uint(8|8Clamped|16|32)Array|Float(32|64)Array|ArrayBuffer/gi.test(
-    {}.toString.call(x)
-  );
-}
-
-function arrayBufferConcat(/* arraybuffers */) {
-
-  let arrays = [].slice.call(arguments);
-
-  if (arrays.length <= 0 || !isValidArray(arrays[0])) {
-    return new Uint8Array(0).buffer;
-  }
-
-  let arrayBuffer = arrays.reduce(function(cbuf, buf, i) {
-
-    if (i === 0) return cbuf;
-    if (!isValidArray(buf)) return cbuf;
-
-    let tmp = new Uint8Array(cbuf.byteLength + buf.byteLength);
-    tmp.set(new Uint8Array(cbuf), 0);
-    tmp.set(new Uint8Array(buf), cbuf.byteLength);
-
-    return tmp.buffer;
-
-  }, arrays[0]);
-
-  return arrayBuffer;
-
-}
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
 
 module.exports = {
   SerialPort: SerialPort,
