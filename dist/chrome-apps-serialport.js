@@ -1,10 +1,6 @@
 const EE = require("events").EventEmitter;
 const util = require("util");
 
-if (process && process.versions.nw && parseFloat(process.versions.nw) >= 0.13) {
-  require("nwjs-j5-fix").fix(); // Fix issue with streams in NW.js
-}
-
 const DATABITS = [7, 8];
 const STOPBITS = [1, 2];
 const PARITY = ["none", "even", "mark", "odd", "space"];
@@ -19,11 +15,8 @@ const _options = {
   buffersize: 256
 };
 
-// This holds data that couldn't be sent (typically when trying to send while a send operation is
-// already ongoing)
-let _bufferArray = [];
+function convertOptions(options) {
 
-function convertOptions(options){
   switch (options.dataBits) {
     case 7:
       options.dataBits = "seven";
@@ -49,6 +42,7 @@ function convertOptions(options){
   }
 
   return options;
+
 }
 
 function SerialPort(path, options, callback) {
@@ -58,12 +52,16 @@ function SerialPort(path, options, callback) {
   let self = this;
 
   this.sending = false;
+  this._sendBufferArray = [];
+  this._sendCallbackArray = [];
+
+  if (process && process.versions.nw && parseFloat(process.versions.nw) >= 0.13) {
+    require("nwjs-j5-fix").fix(); // Fix issue with streams in NW.js
+  }
 
   let args = Array.prototype.slice.call(arguments);
   callback = args.pop();
-  if (typeof(callback) !== "function") {
-    callback = null;
-  }
+  if (typeof(callback) !== "function") callback = null;
 
   options = (typeof options !== "function") && options || {};
 
@@ -72,9 +70,7 @@ function SerialPort(path, options, callback) {
   }
 
   callback = callback || function (err) {
-    if (err) {
-      self.emit("error", err);
-    }
+    if (err) self.emit("error", err);
   };
 
   let err;
@@ -266,31 +262,39 @@ SerialPort.prototype.write = function (buffer, encoding = "utf8", callback = () 
 
   // chrome.serial needs an ArrayBuffer not a Buffer
   if (!(buffer instanceof ArrayBuffer)) buffer = buffer2ArrayBuffer(buffer);
-  callback();
-  this._processBuffer(buffer);
+
+  // Process whats in the buffer
+  this._processBuffer(buffer, callback);
 
 };
 
-SerialPort.prototype._processBuffer = function (buffer) {
+SerialPort.prototype._processBuffer = function (buffer, callback) {
 
-  if (buffer) _bufferArray.push(buffer);
+  if (buffer) this._sendBufferArray.push(buffer);
+
+  if (typeof callback === "function") {
+    this._sendCallbackArray.push(callback);
+  } else {
+    this._sendCallbackArray.push(() => {});
+  }
 
   if (this.sending) return;
   this.sending = true;
 
-  this.options.serial.send(this.connectionId, _bufferArray[0], function(info) {
+  this.options.serial.send(this.connectionId, this._sendBufferArray[0], function(info) {
 
     if (info.error === "pending") {
       console.warn("You cannot send serial data while another send is pending. Retrying.");
     } else if (info.error) {
       console.warn("Sending serial data failed. Error: " + info.error);
-      _bufferArray = [];
+      this._sendBufferArray = [];
     } else {
-      _bufferArray.shift();
+      this._sendBufferArray.shift(); // remove buffer that was just sent
+      this._sendCallbackArray.shift()(); // execute matching callback
     }
 
     this.sending = false;
-    if (_bufferArray.length > 0) setImmediate(this._processBuffer.bind(this));
+    if (this._sendBufferArray.length > 0) setImmediate(this._processBuffer.bind(this));
 
   }.bind(this));
 
