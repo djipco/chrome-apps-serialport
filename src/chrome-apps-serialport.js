@@ -298,7 +298,7 @@ SerialPort.prototype._processBuffer = function (buffer, callback) {
     }
 
     this.sending = false;
-    if (this._sendBufferArray.length > 0) setImmediate(this._processBuffer.bind(this));
+    if (this._sendBufferArray.length > 0) setTimeout(this._processBuffer.bind(this), 0);
 
   }.bind(this));
 
